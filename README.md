@@ -35,28 +35,47 @@ Tested on:
 <details><summary>Method: Portainer Stack (Recommended)</summary>
 <p>
 
-1. Install Portainer or Portainer Agent. If it's your first or single docker server, you must have Portainer first. Agent alone is not enough
+1. Check your docker and docker-compose version
+```ShellSession
+$ docker-compose -v && docker -v
+```
+
+See above for required version and update if needed.
+
+Links to official documentation
+- [Get Docker](https://docs.docker.com/get-docker/)
+- [Get Docker-compose](https://docs.docker.com/compose/install/)
+
+Or... you may give a try with your package manager.
+
+e.g. for Ubuntu
+```ShellSession
+$ apt update
+$ apt install docker-ce docker-ce-cli containerd.io docker-compose
+```
+
+2. Install Portainer or Portainer Agent. If it's your first or single docker server, you must have Portainer first. Agent alone is not enough
 
 * [Portainer/Portainer-CE](https://github.com/portainer/portainer/)
 * [Portainer/Portainer-Agent](https://github.com/portainer/agent)
 
-2. Enter your Portainer Web and select your environmnent
+3. Enter your Portainer Web and select your environmnent
 
-3. Click on stack, then add stack
+4. Click on stack, then add stack
 
-4. Select **Use a git repository**
+5. Select **Use a git repository**
 
-5. Name your stack
+6. Name your stack
 
-6. Set the Repository URL to https://github.com/poaudet/media-stack.git
+7. Set the Repository URL to https://github.com/poaudet/media-stack.git
 
-7. Download the [.env-sample](.env-sample) and rename it to *.env*
+8. Download the [.env-sample](.env-sample) and rename it to *.env*
 
-8. Back to Portainer, click **Load variables from .env file** and select to file you just rename
+9. Back to Portainer, click **Load variables from .env file** and select to file you just rename
 
-9. Edit variables to suit your needs
+10. Edit variables to suit your needs
 
-10. Deploy stack!
+11. Deploy stack!
 
 </p>
 </details>
@@ -88,17 +107,8 @@ $ git clone https://github.com/poaudet/media-stack.git
 ```
 3. Edit the file .env-sample for your needs and save it to .env **in the same folder of docker-compose.yml**
 
-4. Edit the file docker-compose.yml for any specific configurations. All required modification are commented so the next step won't work
-i.e. this:
-```yaml
-volumes:
-      - #/path/to/your/download:/data
-```
-Should be something like this, where pepito is your username:
-```yaml
-volumes:
-      - /home/pepito/downloads:/data
-```
+4. Edit the **.env** file for any specific configurations.
+
 5. Run the image
 ```Shell
 $ docker-compose up -d
