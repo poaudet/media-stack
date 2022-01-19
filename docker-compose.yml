@@ -1,0 +1,145 @@
+#change variables and rename the .env-sample file to .env
+#change all volume host path to your actual path
+version: "3.8" #if needed, you can change it to 3.3
+
+services: 
+  torrent:
+    image: haugene/transmission-openvpn:latest
+    container_name: torrent
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - PUID=$PUID
+      - PGID=$PGID
+      - NORDVPN_CATEGORY=$NORDVPN_CATEGORY #comment if not required
+      - NORDVPN_PROTOCOL=$NORDVPN_PROTOCOL #comment if not required
+      - OPENVPN_PROVIDER=$OPENVPN_PROVIDER
+      - OPENVPN_USERNAME=$OPENVPN_USERNAME
+      - OPENVPN_PASSWORD=$OPENVPN_PASSWORD
+      - LOCAL_NETWORK=$LOCAL_NETWORK
+      #to use torrent container as a webproxy. useful for jackett and also for tunelling other connection through your vpn
+      #be sure to use te same setting inside Jackett (store in the config file and not in the env. variables)
+      - WEBPROXY_ENABLED=$WEBPROXY_ENABLED
+      - WEBPROXY_PORT=$WEBPROXY_PORT
+      - WEBPROXY_USERNAME=$WEBPROXY_USERNAME
+      - WEBPROXY_PASSWORD=$WEBPROXY_PASSWORD
+    volumes:
+      - $DOWNLOADS_PATH:/data
+      - $TORRENT_CONFIG_PATH:/config
+    networks:
+      - media
+    ports:
+      - $WEBPROXY_PORT:$WEBPROXY_PORT #required for webproxy
+      - $TORRENT_WEBUI_PORT:9091 #required for web ui
+    restart: unless-stopped
+  sonarr:
+    image: linuxserver/sonarr:latest
+    container_name: sonarr
+    volumes:
+      - $SERIES_PATH:/media #must be the same than plex
+      - $DOWNLOADS_PATH:/data
+      - $SONARR_CONFIG_PATH:/config
+    networks:
+      - media
+    ports:
+      - $SONARR_PORT:8989 #required for web ui
+    restart: unless-stopped
+  radarr:
+    image: linuxserver/radarr:latest
+    container_name: radarr
+    volumes:
+      - $MOVIES_PATH:/media #must be the same than plex
+      - $RADARR_CONFIG_PATH:/config
+      - $DOWNLOADS_PATH:/data #must be the same than torrent container
+    networks:
+      - media
+    ports:
+      - $RADARR_PORT:7878 #required for web ui
+    restart: unless-stopped
+  jackett:
+    image: linuxserver/jackett:latest
+    container_name: jackett
+    networks:
+      - media
+    ports:
+      - $JACKETT_PORT:9117
+    restart: unless-stopped
+  flaresolverr:
+    image: flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    networks:
+      - media
+    ports:
+      - $FLARESOLVERR_PORT:8191 #required for web ui
+    restart: unless-stopped
+  plex:
+    image: plexinc/pms-docker:latest
+    container_name: plex
+    environment:
+      - TZ=$TZ #change it to your zone as required
+      - PLEX_CLAIM=$PLEX_CLAIM #generate at https://www.plex.tv/claim/
+    volumes:
+      - $PLEX_CONFIG_PATH:/config
+      - $SERIES_PATH:/media/series #must be the same than sonarr and radarr containers
+      - $MOVIES_PATH:/media/movies #must be the same than sonarr and radarr containers
+      - $TRANSCODE_PATH:/transcode
+      - $DOWNLOADS_PATH:/data #must be the same than torrent container
+    networks:
+      - media
+    ports:
+      - $PLEX_PORT:32400 #required for web ui and streaming
+    restart: unless-stopped
+  calibre:
+    image: lscr.io/linuxserver/calibre
+    container_name: calibre
+    environment:
+      - PUID=$PUID
+      - PGID=$PGID
+      - TZ=$TZ
+    volumes:
+      - $CALIBRE_CONFIG_PATH:/config
+    ports:
+      - $CALIBRE_GUI_PORT:8080
+      - $CALIBRE_SERVER_PORT:8081
+    restart: unless-stopped
+    networks:
+      - media
+  calibre-web:
+    image: lscr.io/linuxserver/calibre-web
+    container_name: calibre-web
+    environment:
+      - PUID=$PUID
+      - PGID=$PGID
+      - TZ=$TZ
+    volumes:
+      - $CALIBRE_CONFIG_PATH:/config
+      - $BOOKS_PATH:/books
+    ports:
+      - $CALIBRE_WEB_PORT:8083
+    restart: unless-stopped
+    networks:
+      - media
+  readarr:
+    image: lscr.io/linuxserver/readarr:nightly-alpine
+    container_name: readarr
+    environment:
+      - PUID=$PUID
+      - PGID=$PGID
+    volumes:
+      - $CALIBRE_CONFIG_PATH:/config
+      - $BOOKS_PATH:/books
+      - $DOWNLOADS_PATH:/data
+    ports:
+      - $READARR_PORT:8787
+    restart: unless-stopped
+    networks:
+      - media
+
+networks:
+  media:
+    driver: bridge
+    name: media
+    ipam:
+      config:
+        - subnet: $SUBNET
+          gateway: $GATEWAY
