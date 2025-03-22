@@ -11,11 +11,11 @@ services:
     environment:
       - PUID=$PUID
       - PGID=$PGID
-      - NORDVPN_CATEGORY=$NORDVPN_CATEGORY #comment if not required
-      - NORDVPN_PROTOCOL=$NORDVPN_PROTOCOL #comment if not required
       - OPENVPN_PROVIDER=$OPENVPN_PROVIDER
       - OPENVPN_USERNAME=$OPENVPN_USERNAME
       - OPENVPN_PASSWORD=$OPENVPN_PASSWORD
+      - OPENVPN_CONFIG=$OPENVPN_CONFIG
+      - OPENVPN_OPTS=--mute-replay-warnings
       - LOCAL_NETWORK=$LOCAL_NETWORK
       #to use torrent container as a webproxy. useful for jackett and also for tunelling other connection through your vpn
       #be sure to use te same setting inside Jackett (store in the config file and not in the env. variables)
@@ -23,6 +23,10 @@ services:
       - WEBPROXY_PORT=$WEBPROXY_PORT
       - WEBPROXY_USERNAME=$WEBPROXY_USERNAME
       - WEBPROXY_PASSWORD=$WEBPROXY_PASSWORD
+      - TRANSMISSION_DOWNLOAD_DIR=$TRANSMISSION_DOWNLOAD_DIR
+      - TRANSMISSION_INCOMPLETE_DIR=$TRANSMISSION_INCOMPLETE_DIR
+      - PEER_DNS=$PEER_DNS
+      - PEER_DNS_PIN_ROUTES=$PEER_DNS_PIN_ROUTES
     volumes:
       - $DOWNLOADS_PATH:/data
       - $TORRENT_CONFIG_PATH:/config
@@ -35,6 +39,9 @@ services:
   sonarr:
     image: linuxserver/sonarr:latest
     container_name: sonarr
+    environment:
+      - PUID=$PUID
+      - PGID=$PGID
     volumes:
       - $SERIES_PATH:/media #must be the same than plex
       - $DOWNLOADS_PATH:/data
@@ -47,6 +54,9 @@ services:
   radarr:
     image: linuxserver/radarr:latest
     container_name: radarr
+    environment:
+      - PUID=$PUID
+      - PGID=$PGID
     volumes:
       - $MOVIES_PATH:/media #must be the same than plex
       - $RADARR_CONFIG_PATH:/config
@@ -56,13 +66,30 @@ services:
     ports:
       - $RADARR_PORT:7878 #required for web ui
     restart: unless-stopped
-  jackett:
-    image: linuxserver/jackett:latest
-    container_name: jackett
+  lidarr:
+    image: linuxserver/lidarr:latest
+    container_name: lidarr
+    environment:
+      - PUID=$PUID
+      - PGID=$PGID
+    volumes:
+      - $MUSIC_PATH:/data/Music #must be the same than plex
+      - $LIDARR_CONFIG_PATH:/config
+      - $DOWNLOADS_PATH:/downloads #must be the same than torrent container
     networks:
       - media
     ports:
-      - $JACKETT_PORT:9117
+      - $LIDARR_PORT:8686 #required for web ui
+    restart: unless-stopped
+  prowlarr:
+    image: linuxserver/prowlarr:latest
+    container_name: prowlarr
+    volumes:
+      - $PROWLARR_CONFIG_PATH:/config
+    networks:
+      - media
+    ports:
+      - $PROWLARR_PORT:9696
     restart: unless-stopped
   flaresolverr:
     image: flaresolverr/flaresolverr:latest
@@ -76,18 +103,33 @@ services:
     image: plexinc/pms-docker:latest
     container_name: plex
     environment:
+      - PUID=$PUID
+      - PGID=$PGID
       - TZ=$TZ #change it to your zone as required
       - PLEX_CLAIM=$PLEX_CLAIM #generate at https://www.plex.tv/claim/
     volumes:
       - $PLEX_CONFIG_PATH:/config
       - $SERIES_PATH:/media/series #must be the same than sonarr and radarr containers
       - $MOVIES_PATH:/media/movies #must be the same than sonarr and radarr containers
+      - $MUSIC_PATH:/media/music
       - $TRANSCODE_PATH:/transcode
       - $DOWNLOADS_PATH:/data #must be the same than torrent container
     networks:
       - media
     ports:
       - $PLEX_PORT:32400 #required for web ui and streaming
+    restart: unless-stopped
+  overseerr:
+    image: 	sctx/overseerr:latest
+    container_name: overseerr
+    environment:
+      - PORT=$OVERSEERR_PORT
+    volumes:
+      - $OVERSEERR_CONFIG_PATH:/app/config
+    networks:
+      - media
+    ports:
+      - $OVERSEERR_PORT:5055
     restart: unless-stopped
   calibre:
     image: lscr.io/linuxserver/calibre
